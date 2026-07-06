@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+picpic.db
+_picpic_trash/
+.thumbnails/
+.DS_Store
