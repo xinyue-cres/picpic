@@ -36,7 +36,7 @@ def _ensure_categories(library: pathlib.Path) -> bool:
     """
     if not yaml_available():
         print(
-            "未装 CLIP 依赖，执行 'pip install picpic[clip]' 启用语义分类",
+            "error: PyYAML not installed. Install with: pip install '.[clip]'",
             file=sys.stderr,
         )
         return False
@@ -97,7 +97,7 @@ def analyze_all(
                     clip_report = None
         else:
             print(
-                "未装 CLIP 依赖，执行 'pip install picpic[clip]' 启用语义分类",
+                "error: PyYAML not installed. Install with: pip install '.[clip]'",
                 file=sys.stderr,
             )
 

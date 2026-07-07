@@ -51,5 +51,6 @@ def test_categories_check_reports_missing(tmp_path: pathlib.Path, capsys) -> Non
 
 
 def test_categories_requires_one_flag(tmp_path: pathlib.Path) -> None:
-    rc = main(["categories", str(tmp_path)])
-    assert rc != 0
+    with pytest.raises(SystemExit) as excinfo:
+        main(["categories", str(tmp_path)])
+    assert excinfo.value.code != 0

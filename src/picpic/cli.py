@@ -156,8 +156,6 @@ def _cmd_categories(args) -> int:
         for c in cfg.categories:
             print(f"  - {c.name}: {c.prompt}")
         return 0
-    print("error: pick one of --list, --check, --init", file=sys.stderr)
-    return 2
 
 
 def _cmd_serve(args) -> int:
@@ -205,7 +203,7 @@ def main(argv: list[str] | None = None) -> int:
 
     p = sub.add_parser("categories")
     p.add_argument("library")
-    grp = p.add_mutually_exclusive_group()
+    grp = p.add_mutually_exclusive_group(required=True)
     grp.add_argument("--list", action="store_true")
     grp.add_argument("--check", action="store_true")
     grp.add_argument("--init", action="store_true")
