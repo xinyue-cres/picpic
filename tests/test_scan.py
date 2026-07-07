@@ -72,3 +72,29 @@ def test_scan_ignores_trash_and_thumbs_and_dotfiles(tmp_path, tmp_db_path):
 
     assert report.added == 1
     assert paths[0].endswith("keep.jpg")
+
+
+def test_scan_rejects_symlink_outside_library(tmp_path, tmp_db_path):
+    lib = tmp_path / "lib"
+    lib.mkdir()
+    outside = tmp_path / "outside.jpg"
+    _make_jpeg(outside)
+    # Create a symlink inside the library pointing outside
+    (lib / "escape.jpg").symlink_to(outside)
+    # Also add a legitimate file
+    _make_jpeg(lib / "legit.jpg")
+
+    conn = open_db(tmp_db_path)
+    try:
+        report = scan_library(lib, conn)
+        paths = [
+            r["path"]
+            for r in conn.execute("SELECT path FROM photos").fetchall()
+        ]
+    finally:
+        conn.close()
+
+    assert report.added == 1
+    assert report.skipped == 1  # the symlink
+    assert all("outside.jpg" not in p for p in paths)
+    assert any("legit.jpg" in p for p in paths)

@@ -11,11 +11,16 @@ from fastapi.staticfiles import StaticFiles
 
 from ..db import open_db
 from ..rules import DEFAULT_BLUR_THRESHOLD, apply_rules
-from ..thumbs import ensure_thumb, thumb_path
+from ..thumbs import ensure_thumb
 from ..trash import purge_trash, restore_photos, trash_photos
 
 
 _STATIC_DIR = pathlib.Path(__file__).parent / "static"
+
+
+def _within_library(p: pathlib.Path, library: pathlib.Path) -> bool:
+    """Return True if resolved p is inside the resolved library root."""
+    return p.resolve().is_relative_to(library.resolve())
 
 
 def _photo_dict(row) -> dict[str, Any]:
@@ -163,6 +168,8 @@ def create_app(library: pathlib.Path) -> FastAPI:
                 if entry.name.startswith(f"{photo_id}__"):
                     source = entry
                     break
+        if not _within_library(source, library):
+            raise HTTPException(403, "path outside library")
         if not source.exists():
             raise HTTPException(404, "source missing")
         thumb = ensure_thumb(library, photo_id, source)
@@ -171,9 +178,14 @@ def create_app(library: pathlib.Path) -> FastAPI:
     @app.get("/photo/{photo_id}")
     def get_photo(photo_id: int):
         row = _photo_row(photo_id)
-        if row is None or not pathlib.Path(row["path"]).exists():
+        if row is None:
             raise HTTPException(404, "no such photo")
-        return FileResponse(row["path"])
+        source = pathlib.Path(row["path"])
+        if not _within_library(source, library):
+            raise HTTPException(403, "path outside library")
+        if not source.exists():
+            raise HTTPException(404, "no such photo")
+        return FileResponse(str(source))
 
     return app
 

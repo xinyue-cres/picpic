@@ -126,3 +126,26 @@ def test_rules_endpoint_reruns(tmp_path):
     assert r.status_code == 200
     body = r.json()
     assert "kept" in body and "candidates" in body
+
+
+def test_photo_endpoint_rejects_outside_library(tmp_path):
+    lib = tmp_path / "lib"
+    lib.mkdir()
+    conn = open_db(lib / "picpic.db")
+    try:
+        # Manually insert a row whose path is OUTSIDE the library
+        outside = tmp_path / "outside.jpg"
+        outside.write_bytes(b"secret")
+        conn.execute(
+            "INSERT INTO photos(path, file_size) VALUES(?, ?)",
+            (str(outside.resolve()), outside.stat().st_size),
+        )
+        conn.commit()
+        pid = conn.execute("SELECT id FROM photos").fetchone()["id"]
+    finally:
+        conn.close()
+
+    app = create_app(lib)
+    client = TestClient(app)
+    r = client.get(f"/photo/{pid}")
+    assert r.status_code == 403

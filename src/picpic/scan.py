@@ -38,7 +38,12 @@ def scan_library(root: pathlib.Path, conn: sqlite3.Connection) -> ScanReport:
         if ext not in SUPPORTED_EXTS:
             skipped += 1
             continue
-        abs_path = str(path.resolve())
+        resolved = path.resolve()
+        abs_path = str(resolved)
+        # Reject symlinks that escape outside the library root
+        if not resolved.is_relative_to(root):
+            skipped += 1
+            continue
         size = path.stat().st_size
         try:
             conn.execute(
