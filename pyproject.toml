@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "picpic"
+version = "0.1.0"
+description = "Local, privacy-preserving photo triage tool"
+requires-python = ">=3.12"
+dependencies = [
+  "Pillow>=10.0",
+  "imagehash>=4.3",
+  "opencv-python-headless>=4.8",
+  "fastapi>=0.110",
+  "uvicorn>=0.29",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+picpic = "picpic.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+picpic = ["web/static/*"]
