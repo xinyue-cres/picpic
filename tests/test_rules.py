@@ -24,7 +24,7 @@ def test_screenshot_becomes_candidate(tmp_path, tmp_db_path):
     conn = open_db(tmp_db_path)
     try:
         scan_library(lib, conn)
-        analyze_all(conn)
+        analyze_all(conn, lib, run_clip=False)
         report = apply_rules(conn)
         row = conn.execute(
             "SELECT verdict, verdict_reason FROM photos"
@@ -47,7 +47,7 @@ def test_similar_group_is_not_auto_candidate(tmp_path, tmp_db_path):
     conn = open_db(tmp_db_path)
     try:
         scan_library(lib, conn)
-        analyze_all(conn)
+        analyze_all(conn, lib, run_clip=False)
         # give both photos an EXIF camera model to escape screenshot rule
         # and set blur_score above threshold to escape blur rule:
         conn.execute(
@@ -79,7 +79,7 @@ def test_exact_dup_marks_extras(tmp_path, tmp_db_path):
     conn = open_db(tmp_db_path)
     try:
         scan_library(lib, conn)
-        analyze_all(conn)
+        analyze_all(conn, lib, run_clip=False)
         conn.execute(
             "UPDATE photos SET camera_model='Canon', is_screenshot=0, "
             "blur_score=?", (DEFAULT_BLUR_THRESHOLD * 10,)
@@ -108,7 +108,7 @@ def test_apply_rules_is_idempotent(tmp_path, tmp_db_path):
     conn = open_db(tmp_db_path)
     try:
         scan_library(lib, conn)
-        analyze_all(conn)
+        analyze_all(conn, lib, run_clip=False)
         first = apply_rules(conn)
         second = apply_rules(conn)
     finally:

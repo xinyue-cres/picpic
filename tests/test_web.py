@@ -24,7 +24,7 @@ def _prep(library):
     conn = open_db(library / "picpic.db")
     try:
         scan_library(library, conn)
-        analyze_all(conn)
+        analyze_all(conn, library, run_clip=False)
         apply_rules(conn)
     finally:
         conn.close()

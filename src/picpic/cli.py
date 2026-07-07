@@ -46,12 +46,24 @@ def _cmd_analyze(args) -> int:
         return err
     conn = open_db(_db_path(library))
     try:
-        report = analyze_all(conn)
+        report = analyze_all(
+            conn,
+            library,
+            run_clip=not args.no_clip,
+            force_clip=args.force_clip,
+            clip_only=args.clip_only,
+        )
     finally:
         conn.close()
+    clip_line = ""
+    if report.clip is not None:
+        c = report.clip
+        clip_line = (
+            f" clip=processed:{c.processed}/failed:{c.failed}/skipped:{c.skipped}"
+        )
     print(
         f"analyze: exif={report.exif} hashes={report.hashes} "
-        f"similar={report.similar} blur={report.blur}"
+        f"similar={report.similar} blur={report.blur}{clip_line}"
     )
     return 0
 
@@ -97,15 +109,28 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="picpic")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
-    for name, fn in (
-        ("scan", _cmd_scan),
-        ("analyze", _cmd_analyze),
-        ("rules", _cmd_rules),
-        ("all", _cmd_all),
-    ):
-        p = sub.add_parser(name)
-        p.add_argument("library")
-        p.set_defaults(fn=fn)
+    p = sub.add_parser("scan")
+    p.add_argument("library")
+    p.set_defaults(fn=_cmd_scan)
+
+    p = sub.add_parser("analyze")
+    p.add_argument("library")
+    p.add_argument("--no-clip", action="store_true", help="skip CLIP pass")
+    p.add_argument("--clip-only", action="store_true", help="run only CLIP")
+    p.add_argument("--force-clip", action="store_true",
+                   help="rerun CLIP on all photos, not just unlabeled")
+    p.set_defaults(fn=_cmd_analyze)
+
+    p = sub.add_parser("rules")
+    p.add_argument("library")
+    p.set_defaults(fn=_cmd_rules)
+
+    p = sub.add_parser("all")
+    p.add_argument("library")
+    p.add_argument("--no-clip", action="store_true")
+    p.add_argument("--clip-only", action="store_true")
+    p.add_argument("--force-clip", action="store_true")
+    p.set_defaults(fn=_cmd_all)
 
     p = sub.add_parser("serve")
     p.add_argument("library")

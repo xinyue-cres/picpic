@@ -18,7 +18,7 @@ def test_analyze_all_runs_every_pass(tmp_path, tmp_db_path):
     conn = open_db(tmp_db_path)
     try:
         scan_library(lib, conn)
-        report = analyze_all(conn)
+        report = analyze_all(conn, lib, run_clip=False)
         rows = conn.execute(
             "SELECT is_screenshot, blur_score, file_hash, phash FROM photos"
         ).fetchall()
@@ -43,11 +43,65 @@ def test_analyze_all_second_run_is_noop(tmp_path, tmp_db_path):
     conn = open_db(tmp_db_path)
     try:
         scan_library(lib, conn)
-        analyze_all(conn)
-        second = analyze_all(conn)
+        analyze_all(conn, lib, run_clip=False)
+        second = analyze_all(conn, lib, run_clip=False)
     finally:
         conn.close()
 
     assert second.exif == 0
     assert second.hashes == 0
     assert second.blur == 0
+
+
+# --- CLIP integration tests (Task 4) ---
+import pytest
+
+from picpic.analyze import clip as clip_mod
+from picpic.analyze.clip import ClipReport
+from picpic.categories import yaml_available
+
+
+def _install_clip_stub(monkeypatch, *, available=True, report=None):
+    monkeypatch.setattr(clip_mod, "clip_available", lambda: available)
+
+    def fake_run(conn, library, *, force=False, batch_size=32, progress=None):
+        return report or ClipReport(total=0, processed=0, failed=0, skipped=0)
+
+    monkeypatch.setattr(clip_mod, "run_clip_pass", fake_run)
+
+
+def test_analyze_all_includes_clip_when_available(tmp_path, monkeypatch):
+    if not yaml_available():
+        pytest.skip("PyYAML not installed")
+    conn = open_db(tmp_path / "picpic.db")
+    _install_clip_stub(monkeypatch, available=True, report=ClipReport(1, 1, 0, 0))
+    report = analyze_all(conn, tmp_path)
+    assert report.clip is not None
+    assert report.clip.processed == 1
+
+
+def test_analyze_all_skips_clip_when_unavailable(tmp_path, monkeypatch):
+    conn = open_db(tmp_path / "picpic.db")
+    _install_clip_stub(monkeypatch, available=False)
+    report = analyze_all(conn, tmp_path)
+    assert report.clip is None
+
+
+def test_analyze_all_no_clip_flag(tmp_path, monkeypatch):
+    conn = open_db(tmp_path / "picpic.db")
+    _install_clip_stub(monkeypatch, available=True)
+    report = analyze_all(conn, tmp_path, run_clip=False)
+    assert report.clip is None
+
+
+def test_analyze_all_clip_only_skips_others(tmp_path, monkeypatch):
+    if not yaml_available():
+        pytest.skip("PyYAML not installed")
+    conn = open_db(tmp_path / "picpic.db")
+    _install_clip_stub(monkeypatch, available=True, report=ClipReport(3, 3, 0, 0))
+    report = analyze_all(conn, tmp_path, clip_only=True)
+    assert report.exif == 0
+    assert report.hashes == 0
+    assert report.similar == 0
+    assert report.blur == 0
+    assert report.clip.processed == 3

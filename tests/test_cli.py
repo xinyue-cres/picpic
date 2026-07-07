@@ -50,3 +50,48 @@ def test_cli_scan_nonexistent_library_returns_2(tmp_path, capsys):
     assert "not found or not a directory" in err
     # Must not create any files on disk
     assert not (tmp_path / "no_such_dir").exists()
+
+
+# --- CLIP CLI flag tests (Task 4) ---
+import pytest
+
+
+def test_cli_analyze_no_clip_flag(tmp_path, monkeypatch):
+    from picpic.analyze import clip as clip_mod
+    from picpic.analyze.clip import ClipReport
+    called = {"n": 0}
+
+    def fake_run(*a, **kw):
+        called["n"] += 1
+        return ClipReport(0, 0, 0, 0)
+
+    monkeypatch.setattr(clip_mod, "clip_available", lambda: True)
+    monkeypatch.setattr(clip_mod, "run_clip_pass", fake_run)
+    from picpic.cli import main as cli_main
+    rc = cli_main(["analyze", str(tmp_path), "--no-clip"])
+    assert rc == 0
+    assert called["n"] == 0
+
+
+def test_cli_analyze_clip_only_flag(tmp_path, monkeypatch):
+    from picpic.categories import yaml_available
+    if not yaml_available():
+        pytest.skip("PyYAML not installed")
+    from picpic.analyze import clip as clip_mod, exif as exif_mod
+    from picpic.analyze.clip import ClipReport
+    exif_calls = {"n": 0}
+
+    def fake_exif(_conn):
+        exif_calls["n"] += 1
+        return 0
+
+    monkeypatch.setattr(clip_mod, "clip_available", lambda: True)
+    monkeypatch.setattr(
+        clip_mod, "run_clip_pass",
+        lambda *a, **kw: ClipReport(0, 0, 0, 0),
+    )
+    monkeypatch.setattr(exif_mod, "run_exif_pass", fake_exif)
+    from picpic.cli import main as cli_main
+    rc = cli_main(["analyze", str(tmp_path), "--clip-only"])
+    assert rc == 0
+    assert exif_calls["n"] == 0
