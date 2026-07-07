@@ -13,6 +13,7 @@ from ..categories import (
 )
 from . import clip as clip_mod
 from .blur import run_blur_pass
+from .clip import ClipUnavailable
 from .exif import run_exif_pass
 from .hashes import run_hash_pass
 from .similar import run_similarity_pass
@@ -86,8 +87,13 @@ def analyze_all(
                     clip_report = clip_mod.run_clip_pass(
                         conn, library, force=force_clip, progress=_progress
                     )
-                except CategoriesError as exc:
-                    print(f"error: {exc}", file=sys.stderr)
+                except (
+                    CategoriesError,
+                    ClipUnavailable,
+                    FileNotFoundError,
+                    OSError,
+                ) as exc:
+                    print(f"CLIP 步骤失败: {exc}", file=sys.stderr)
                     clip_report = None
         else:
             print(
