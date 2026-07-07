@@ -452,7 +452,7 @@ Co-Authored-By: Claude Opus 4 <noreply@anthropic.com>"
   - `def clip_available() -> bool`
   - `def _load_model(model: str, pretrained: str) -> tuple`(测试 monkeypatch 用)
   - `def _encode_text(model_bundle, prompts: list[str])`(测试 monkeypatch 用)
-  - `def _encode_image_batch(model_bundle, _preprocess_unused, paths: list[str]) -> list[list[float] | None]`
+  - `def _encode_image_batch(model_bundle, paths: list[str]) -> list[list[float] | None]`
     - 返回 per-image per-prompt scores(baseline 在下标 0,categories 依原顺序);decode 失败返回 None
     - 测试 monkeypatch 用;真实实现读 `_CACHE["text_emb"]` 做矩阵乘
   - `def run_clip_pass(conn, library, *, force=False, batch_size=32, progress=None) -> ClipReport`
@@ -524,7 +524,7 @@ def _install_fakes(
     def fake_encode_text(_bundle, _prompts):
         return "FAKE_TEXT_EMB"
 
-    def fake_encode_image_batch(_bundle, _preproc, paths):
+    def fake_encode_image_batch(_bundle, paths):
         out: list[list[float] | None] = []
         for _ in paths:
             idx = call_state["decode_count"]
@@ -711,6 +711,7 @@ torch. clip_available() gates callers when [clip] extras are missing.
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import pathlib
 import sqlite3
@@ -736,12 +737,10 @@ class ClipReport:
 
 
 def clip_available() -> bool:
-    try:
-        import torch  # noqa: F401
-        import open_clip  # noqa: F401
-    except ImportError:
-        return False
-    return True
+    return all(
+        importlib.util.find_spec(m) is not None
+        for m in ("torch", "open_clip")
+    )
 
 
 def _load_model(model: str, pretrained: str):
@@ -781,7 +780,7 @@ _CACHE: dict[str, Any] = {}
 
 
 def _encode_image_batch(
-    model_bundle, _preprocess_unused, paths: list[str]
+    model_bundle, paths: list[str]
 ) -> list[list[float] | None]:
     """Encode a batch of images and return post-softmax scores per prompt.
 
@@ -872,7 +871,7 @@ def run_clip_pass(
         for start in range(0, total, batch_size):
             chunk = rows[start : start + batch_size]
             paths = [r["path"] for r in chunk]
-            scored = _encode_image_batch(model_bundle, None, paths)
+            scored = _encode_image_batch(model_bundle, paths)
             for row, s in zip(chunk, scored):
                 if s is None:
                     conn.execute(
