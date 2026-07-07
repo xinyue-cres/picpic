@@ -53,6 +53,7 @@ def trash_photos(
                 "UPDATE photos SET status='trashed', trashed_at=? WHERE id=?",
                 (now, r["id"]),
             )
+            conn.commit()
             continue
         dest = _unique_dest(trash / f"{r['id']}__{src.name}")
         shutil.move(str(src), str(dest))
@@ -60,8 +61,8 @@ def trash_photos(
             "UPDATE photos SET status='trashed', trashed_at=? WHERE id=?",
             (now, r["id"]),
         )
+        conn.commit()
         moved += 1
-    conn.commit()
     return moved
 
 
@@ -102,12 +103,13 @@ def restore_photos(
                 "WHERE id=?",
                 (r["id"],),
             )
+            conn.commit()
             continue
         original.parent.mkdir(parents=True, exist_ok=True)
         if original.exists():
-            dest = original.with_name(
+            dest = _unique_dest(original.with_name(
                 f"{original.stem}.restored{original.suffix}"
-            )
+            ))
         else:
             dest = original
         shutil.move(str(src), str(dest))
@@ -116,8 +118,8 @@ def restore_photos(
             "WHERE id=?",
             (str(dest), r["id"]),
         )
+        conn.commit()
         restored += 1
-    conn.commit()
     return restored
 
 
@@ -126,12 +128,12 @@ def purge_trash(
     library: pathlib.Path,
 ) -> int:
     trash = library / TRASH_DIRNAME
+    conn.execute("DELETE FROM photos WHERE status='trashed'")
+    conn.commit()
     deleted = 0
     if trash.exists():
         for entry in list(trash.iterdir()):
             if entry.is_file():
                 entry.unlink()
                 deleted += 1
-    conn.execute("DELETE FROM photos WHERE status='trashed'")
-    conn.commit()
     return deleted

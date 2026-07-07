@@ -106,3 +106,38 @@ def test_purge_deletes_files_and_rows(tmp_path):
     assert remaining == 0
     trash_dir = lib / TRASH_DIRNAME
     assert list(trash_dir.iterdir()) == []
+
+
+def test_restore_when_original_occupied_never_overwrites(tmp_path):
+    """Regression: restoring twice into an occupied path must not overwrite the first .restored file."""
+    lib = tmp_path / "lib"
+    src = lib / "a.jpg"
+    _make(src, color=(10, 200, 30))
+
+    conn = open_db(lib / "picpic.db")
+    try:
+        scan_library(lib, conn)
+        (photo_id,) = [
+            r["id"]
+            for r in conn.execute("SELECT id FROM photos").fetchall()
+        ]
+
+        # Trash the photo (DB path stays lib/a.jpg)
+        trash_photos(conn, lib, [photo_id], now="2026-07-06T00:00:00")
+
+        # Occupy the original path AND the .restored path before restoring
+        _make(src, color=(0, 0, 200))  # a.jpg is occupied
+        (lib / "a.restored.jpg").write_bytes(b"pre-existing restored file")
+
+        # Restore — original exists AND a.restored.jpg exists → _unique_dest should kick in
+        restore_photos(conn, lib, [photo_id])
+
+        # The pre-existing a.restored.jpg must still be there, unchanged
+        assert (lib / "a.restored.jpg").read_bytes() == b"pre-existing restored file"
+
+        # And the newly restored file should live at a.restored-2.jpg (or later suffix)
+        candidates = sorted(p.name for p in lib.iterdir() if p.name.startswith("a.restored"))
+        assert "a.restored.jpg" in candidates
+        assert any(name.startswith("a.restored-") for name in candidates)
+    finally:
+        conn.close()
