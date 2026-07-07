@@ -96,6 +96,70 @@ def _cmd_all(args) -> int:
     return 0
 
 
+def _cmd_categories(args) -> int:
+    from .categories import (
+        CATEGORIES_FILENAME,
+        CategoriesError,
+        check_categories,
+        load_categories,
+        write_default,
+        yaml_available,
+    )
+    if not yaml_available():
+        print(
+            "error: PyYAML not installed. Install with: pip install '.[clip]'",
+            file=sys.stderr,
+        )
+        return 2
+    library = pathlib.Path(args.library).resolve()
+    if (err := _require_library(library)) is not None:
+        return err
+    if args.init:
+        try:
+            path = write_default(library)
+        except FileExistsError:
+            print(
+                f"error: {CATEGORIES_FILENAME} already exists in {library}",
+                file=sys.stderr,
+            )
+            return 1
+        except CategoriesError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 1
+        print(f"wrote {path}")
+        return 0
+    if args.check:
+        problems = check_categories(library)
+        if not problems:
+            print("ok")
+            return 0
+        for msg in problems:
+            print(f"problem: {msg}", file=sys.stderr)
+        return 1
+    if args.list:
+        try:
+            cfg = load_categories(library)
+        except FileNotFoundError:
+            print(
+                f"error: {CATEGORIES_FILENAME} not found in {library}. "
+                f"Run: picpic categories {library} --init",
+                file=sys.stderr,
+            )
+            return 1
+        except CategoriesError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 1
+        print(
+            f"version={cfg.version} model={cfg.model} "
+            f"pretrained={cfg.pretrained} top_k={cfg.top_k}"
+        )
+        for c in cfg.categories:
+            print(f"  - {c.name}: {c.prompt}")
+        return 0
+    print("error: pick one of --list, --check, --init", file=sys.stderr)
+    return 2
+
+
 def _cmd_serve(args) -> int:
     from .web.app import serve
     library = pathlib.Path(args.library).resolve()
@@ -138,6 +202,14 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--port", type=int, default=8765)
     p.add_argument("--no-open", action="store_true")
     p.set_defaults(fn=_cmd_serve)
+
+    p = sub.add_parser("categories")
+    p.add_argument("library")
+    grp = p.add_mutually_exclusive_group()
+    grp.add_argument("--list", action="store_true")
+    grp.add_argument("--check", action="store_true")
+    grp.add_argument("--init", action="store_true")
+    p.set_defaults(fn=_cmd_categories)
 
     args = parser.parse_args(argv)
     return args.fn(args)
