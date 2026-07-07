@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import pathlib
 import webbrowser
 from typing import Any
@@ -24,6 +25,15 @@ def _within_library(p: pathlib.Path, library: pathlib.Path) -> bool:
 
 
 def _photo_dict(row) -> dict[str, Any]:
+    raw = row["clip_labels"]
+    parsed: list[dict[str, Any]] = []
+    if raw:
+        try:
+            data = json.loads(raw)
+            if isinstance(data, list):
+                parsed = data
+        except (json.JSONDecodeError, TypeError):
+            parsed = []
     return {
         "id": row["id"],
         "path": row["path"],
@@ -34,6 +44,8 @@ def _photo_dict(row) -> dict[str, Any]:
         "is_screenshot": row["is_screenshot"],
         "width": row["width"],
         "height": row["height"],
+        "clip_labels": parsed,
+        "top_label": parsed[0] if parsed else None,
     }
 
 
@@ -65,6 +77,8 @@ def create_app(library: pathlib.Path) -> FastAPI:
     def list_photos(
         tab: str = Query("candidates"),
         min_blur: float | None = Query(None),
+        label: str | None = Query(None),
+        min_score: float = Query(0.25),
     ):
         conn = open_db(db_path)
         try:
@@ -92,6 +106,31 @@ def create_app(library: pathlib.Path) -> FastAPI:
                     "SELECT * FROM photos WHERE status='trashed' "
                     "ORDER BY trashed_at DESC, id"
                 ).fetchall()
+            elif tab == "labeled":
+                rows = conn.execute(
+                    "SELECT * FROM photos "
+                    "WHERE status='active' AND clip_labels IS NOT NULL "
+                    "ORDER BY id"
+                ).fetchall()
+                photos = [_photo_dict(r) for r in rows]
+                if label is None:
+                    return {"photos": photos}
+                unclassified_name = "未分类"
+                if label == unclassified_name:
+                    filtered = [
+                        p for p in photos
+                        if not p["top_label"] or p["top_label"]["score"] < min_score
+                    ]
+                    filtered.sort(key=lambda p: p["id"])
+                    return {"photos": filtered}
+                filtered = [
+                    p for p in photos
+                    if p["top_label"]
+                    and p["top_label"]["name"] == label
+                    and p["top_label"]["score"] >= min_score
+                ]
+                filtered.sort(key=lambda p: -p["top_label"]["score"])
+                return {"photos": filtered}
             else:
                 raise HTTPException(400, f"unknown tab: {tab}")
             return {"photos": [_photo_dict(r) for r in rows]}
@@ -107,6 +146,52 @@ def create_app(library: pathlib.Path) -> FastAPI:
         finally:
             conn.close()
         return {"moved": n}
+
+    @app.get("/api/labels")
+    def api_labels(min_score: float = Query(0.25)):
+        from ..categories import (
+            CATEGORIES_FILENAME,
+            CategoriesError,
+            load_categories,
+            yaml_available,
+        )
+        if not yaml_available() or not (library / CATEGORIES_FILENAME).exists():
+            return {"available": False, "categories": [], "unclassified_count": 0}
+        try:
+            cfg = load_categories(library)
+        except CategoriesError:
+            return {"available": False, "categories": [], "unclassified_count": 0}
+        conn = open_db(db_path)
+        try:
+            rows = conn.execute(
+                "SELECT clip_labels FROM photos "
+                "WHERE status='active' AND clip_labels IS NOT NULL"
+            ).fetchall()
+        finally:
+            conn.close()
+        counts: dict[str, int] = {c.name: 0 for c in cfg.categories}
+        unclassified = 0
+        for r in rows:
+            try:
+                arr = json.loads(r["clip_labels"])
+            except (json.JSONDecodeError, TypeError):
+                arr = []
+            if arr and isinstance(arr, list) and arr[0].get("score", 0) >= min_score:
+                name = arr[0].get("name")
+                if name in counts:
+                    counts[name] += 1
+                else:
+                    unclassified += 1
+            else:
+                unclassified += 1
+        return {
+            "available": True,
+            "categories": [
+                {"name": name, "count": counts[name]}
+                for name in [c.name for c in cfg.categories]
+            ],
+            "unclassified_count": unclassified,
+        }
 
     @app.post("/api/restore")
     def api_restore(payload: dict = Body(...)):
