@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>picpic</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <nav id="tabs">
+      <button class="tab active" data-tab="candidates">待删候选</button>
+      <button class="tab" data-tab="similar">相似图组</button>
+      <button class="tab" data-tab="trashed">回收区</button>
+    </nav>
+    <div id="counts"></div>
+  </header>
+
+  <section id="controls">
+    <div id="reason-filters">
+      <label><input type="checkbox" value="screenshot" checked> 截图</label>
+      <label><input type="checkbox" value="blurry" checked> 模糊</label>
+      <label><input type="checkbox" value="exact_dup" checked> 完全重复</label>
+    </div>
+    <div id="blur-control">
+      模糊阈值:
+      <input type="range" id="blur-threshold" min="0" max="500" value="100">
+      <span id="blur-value">100</span>
+      <button id="rerun-rules">重跑规则</button>
+    </div>
+  </section>
+
+  <main id="grid"></main>
+
+  <footer>
+    <span id="selected-count">已选 0 张</span>
+    <button id="btn-primary">移入回收区</button>
+    <button id="btn-secondary" hidden>清空回收区</button>
+    <button id="btn-select-all">全选</button>
+    <button id="btn-clear">取消</button>
+  </footer>
+
+  <div id="lightbox" hidden><img id="lightbox-img"></div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
