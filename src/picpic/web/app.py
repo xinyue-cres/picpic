@@ -109,7 +109,7 @@ def create_app(library: pathlib.Path) -> FastAPI:
             elif tab == "labeled":
                 rows = conn.execute(
                     "SELECT * FROM photos "
-                    "WHERE status='active' AND clip_labels IS NOT NULL "
+                    "WHERE status='active' "
                     "ORDER BY id"
                 ).fetchall()
                 photos = [_photo_dict(r) for r in rows]
@@ -165,15 +165,19 @@ def create_app(library: pathlib.Path) -> FastAPI:
         try:
             rows = conn.execute(
                 "SELECT clip_labels FROM photos "
-                "WHERE status='active' AND clip_labels IS NOT NULL"
+                "WHERE status='active'"
             ).fetchall()
         finally:
             conn.close()
         counts: dict[str, int] = {c.name: 0 for c in cfg.categories}
         unclassified = 0
         for r in rows:
+            raw = r["clip_labels"]
+            if raw is None:
+                unclassified += 1
+                continue
             try:
-                arr = json.loads(r["clip_labels"])
+                arr = json.loads(raw)
             except (json.JSONDecodeError, TypeError):
                 arr = []
             if arr and isinstance(arr, list) and arr[0].get("score", 0) >= min_score:

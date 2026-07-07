@@ -22,6 +22,15 @@ def _seed(conn, path, labels):
     return cur.lastrowid
 
 
+def _seed_null(conn, path):
+    cur = conn.execute(
+        "INSERT INTO photos(path, status, clip_labels) VALUES(?, 'active', NULL)",
+        (path,),
+    )
+    conn.commit()
+    return cur.lastrowid
+
+
 async def _get(app, url):
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://t"
@@ -112,3 +121,40 @@ async def test_photos_dict_includes_clip_labels(tmp_path: pathlib.Path) -> None:
     p = r.json()["photos"][0]
     assert p["top_label"]["name"] == "收据"
     assert p["clip_labels"][0]["score"] == 0.9
+
+
+@pytest.mark.anyio
+async def test_labels_null_clip_labels_counted_unclassified(tmp_path: pathlib.Path) -> None:
+    from picpic.categories import write_default, yaml_available
+    if not yaml_available():
+        pytest.skip("PyYAML missing")
+    write_default(tmp_path)
+    conn = open_db(tmp_path / "picpic.db")
+    _seed(conn, str(tmp_path / "a.jpg"), [{"name": "收据", "score": 0.9}])
+    _seed_null(conn, str(tmp_path / "b.jpg"))
+    conn.close()
+    app = create_app(tmp_path)
+    r = await _get(app, "/api/labels?min_score=0.25")
+    data = r.json()
+    assert data["available"] is True
+    assert data["unclassified_count"] >= 1
+
+
+@pytest.mark.anyio
+async def test_photos_labeled_unclassified_includes_null(tmp_path: pathlib.Path) -> None:
+    from picpic.categories import write_default, yaml_available
+    if not yaml_available():
+        pytest.skip("PyYAML missing")
+    write_default(tmp_path)
+    conn = open_db(tmp_path / "picpic.db")
+    _seed(conn, str(tmp_path / "a.jpg"), [{"name": "收据", "score": 0.9}])
+    id_empty = _seed(conn, str(tmp_path / "b.jpg"), [])
+    id_below = _seed(conn, str(tmp_path / "c.jpg"), [{"name": "食物", "score": 0.1}])
+    id_null = _seed_null(conn, str(tmp_path / "d.jpg"))
+    conn.close()
+    app = create_app(tmp_path)
+    r = await _get(
+        app, f"/api/photos?tab=labeled&label={UNCLASSIFIED}&min_score=0.25"
+    )
+    ids = {p["id"] for p in r.json()["photos"]}
+    assert ids == {id_empty, id_below, id_null}
