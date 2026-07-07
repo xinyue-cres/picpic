@@ -108,6 +108,28 @@ def test_purge_deletes_files_and_rows(tmp_path):
     assert list(trash_dir.iterdir()) == []
 
 
+def test_purge_removes_subdirectories(tmp_path):
+    lib = tmp_path / "lib"
+    _make(lib / "a.jpg")
+    conn = open_db(lib / "picpic.db")
+    try:
+        scan_library(lib, conn)
+        ids = _ids(conn)
+        trash_photos(conn, lib, ids, now="2026-07-06T00:00:00")
+        # Create a subdirectory inside the trash folder
+        subdir = lib / TRASH_DIRNAME / "stray_dir"
+        subdir.mkdir(parents=True, exist_ok=True)
+        (subdir / "nested.txt").write_text("junk")
+        n = purge_trash(conn, lib)
+    finally:
+        conn.close()
+
+    assert n == 1  # only counts files, not directories
+    trash_dir = lib / TRASH_DIRNAME
+    assert list(trash_dir.iterdir()) == []
+    assert not subdir.exists()
+
+
 def test_restore_when_original_occupied_never_overwrites(tmp_path):
     """Regression: restoring twice into an occupied path must not overwrite the first .restored file."""
     lib = tmp_path / "lib"
@@ -141,3 +163,27 @@ def test_restore_when_original_occupied_never_overwrites(tmp_path):
         assert any(name.startswith("a.restored-") for name in candidates)
     finally:
         conn.close()
+
+
+def test_restore_missing_trash_file_leaves_status(tmp_path):
+    """When the trash file is gone, restore should NOT flip status to active."""
+    lib = tmp_path / "lib"
+    _make(lib / "a.jpg")
+    conn = open_db(lib / "picpic.db")
+    try:
+        scan_library(lib, conn)
+        ids = _ids(conn)
+        trash_photos(conn, lib, ids, now="2026-07-06T00:00:00")
+        # Manually delete the trash file to simulate missing entry
+        trash_dir = lib / TRASH_DIRNAME
+        for f in trash_dir.iterdir():
+            f.unlink()
+        restored = restore_photos(conn, lib, ids)
+        row = conn.execute(
+            "SELECT status FROM photos WHERE id=?", (ids[0],)
+        ).fetchone()
+    finally:
+        conn.close()
+
+    assert restored == 0
+    assert row["status"] == "trashed"

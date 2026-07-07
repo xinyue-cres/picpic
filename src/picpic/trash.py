@@ -3,7 +3,7 @@ from __future__ import annotations
 import pathlib
 import shutil
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 TRASH_DIRNAME = "_picpic_trash"
@@ -36,7 +36,7 @@ def trash_photos(
 ) -> int:
     if not ids:
         return 0
-    now = now or datetime.utcnow().isoformat(timespec="seconds")
+    now = now or datetime.now(timezone.utc).isoformat(timespec="seconds")
     trash = _trash_dir(library)
     moved = 0
     placeholders = ",".join("?" * len(ids))
@@ -72,9 +72,7 @@ def _find_in_trash(library: pathlib.Path, photo_id: int) -> pathlib.Path | None:
         return None
     prefix = f"{photo_id}__"
     for entry in trash.iterdir():
-        if entry.name.startswith(prefix) or entry.name.startswith(
-            f"{photo_id}-"
-        ):
+        if entry.name.startswith(prefix):
             return entry
     return None
 
@@ -98,12 +96,11 @@ def restore_photos(
         src = _find_in_trash(library, r["id"])
         original = pathlib.Path(r["path"])
         if src is None:
-            conn.execute(
-                "UPDATE photos SET status='active', trashed_at=NULL "
-                "WHERE id=?",
-                (r["id"],),
+            print(
+                f"warning: trash entry missing for photo {r['id']} "
+                f"({r['path']}), leaving status as trashed",
+                file=__import__('sys').stderr,
             )
-            conn.commit()
             continue
         original.parent.mkdir(parents=True, exist_ok=True)
         if original.exists():
@@ -136,4 +133,6 @@ def purge_trash(
             if entry.is_file():
                 entry.unlink()
                 deleted += 1
+            elif entry.is_dir():
+                shutil.rmtree(entry)
     return deleted
