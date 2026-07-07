@@ -135,3 +135,61 @@ def test_analyze_all_isolates_clip_unavailable(tmp_path, tmp_db_path, monkeypatc
     assert report.hashes == 2
     assert report.similar >= 0
     assert report.blur == 2
+
+
+def test_analyze_all_isolates_runtime_error(tmp_path, tmp_db_path, monkeypatch):
+    if not yaml_available():
+        pytest.skip("PyYAML not installed")
+    lib = tmp_path / "lib"
+    _make(lib / "a.jpg")
+    _make(lib / "b.jpg", color=(200, 20, 20))
+
+    conn = open_db(tmp_db_path)
+    try:
+        scan_library(lib, conn)
+        monkeypatch.setattr(clip_mod, "clip_available", lambda: True)
+
+        def boom(conn, library, *, force=False, batch_size=32, progress=None):
+            raise RuntimeError("cuda oom")
+
+        monkeypatch.setattr(clip_mod, "run_clip_pass", boom)
+        report = analyze_all(conn, lib, run_clip=True)
+    finally:
+        conn.close()
+
+    from picpic.analyze.runner import AnalyzeReport
+
+    assert isinstance(report, AnalyzeReport)
+    assert report.clip is None
+    assert report.exif == 2
+    assert report.hashes == 2
+    assert report.blur == 2
+
+
+def test_analyze_all_isolates_assertion_error(tmp_path, tmp_db_path, monkeypatch):
+    if not yaml_available():
+        pytest.skip("PyYAML not installed")
+    lib = tmp_path / "lib"
+    _make(lib / "a.jpg")
+    _make(lib / "b.jpg", color=(200, 20, 20))
+
+    conn = open_db(tmp_db_path)
+    try:
+        scan_library(lib, conn)
+        monkeypatch.setattr(clip_mod, "clip_available", lambda: True)
+
+        def boom(conn, library, *, force=False, batch_size=32, progress=None):
+            raise AssertionError("text_emb None")
+
+        monkeypatch.setattr(clip_mod, "run_clip_pass", boom)
+        report = analyze_all(conn, lib, run_clip=True)
+    finally:
+        conn.close()
+
+    from picpic.analyze.runner import AnalyzeReport
+
+    assert isinstance(report, AnalyzeReport)
+    assert report.clip is None
+    assert report.exif == 2
+    assert report.hashes == 2
+    assert report.blur == 2

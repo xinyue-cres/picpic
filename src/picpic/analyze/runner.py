@@ -92,8 +92,13 @@ def analyze_all(
                     ClipUnavailable,
                     FileNotFoundError,
                     OSError,
+                    RuntimeError,
+                    AssertionError,
                 ) as exc:
-                    print(f"CLIP 步骤失败: {exc}", file=sys.stderr)
+                    print(
+                        f"CLIP 步骤失败,Phase 1 结果已保存: {exc}",
+                        file=sys.stderr,
+                    )
                     clip_report = None
         else:
             print(
