@@ -43,7 +43,7 @@ def clip_available() -> bool:
     )
 
 
-def _load_model(model: str, pretrained: str):
+def _load_model(model: str, pretrained: str) -> tuple:
     """Load open_clip model. Returns (model, preprocess, tokenizer)."""
     import open_clip  # type: ignore[import-not-found]
     import torch  # type: ignore[import-not-found]
