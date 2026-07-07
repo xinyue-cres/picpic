@@ -11,9 +11,22 @@ def _db_path(library: pathlib.Path) -> pathlib.Path:
     return library / "picpic.db"
 
 
+def _require_library(library: pathlib.Path) -> int | None:
+    """Return error code 2 if library is invalid, else None."""
+    if not library.exists() or not library.is_dir():
+        print(
+            f"error: library not found or not a directory: {library}",
+            file=sys.stderr,
+        )
+        return 2
+    return None
+
+
 def _cmd_scan(args) -> int:
     from .scan import scan_library
     library = pathlib.Path(args.library).resolve()
+    if (err := _require_library(library)) is not None:
+        return err
     conn = open_db(_db_path(library))
     try:
         report = scan_library(library, conn)
@@ -29,6 +42,8 @@ def _cmd_scan(args) -> int:
 def _cmd_analyze(args) -> int:
     from .analyze.runner import analyze_all
     library = pathlib.Path(args.library).resolve()
+    if (err := _require_library(library)) is not None:
+        return err
     conn = open_db(_db_path(library))
     try:
         report = analyze_all(conn)
@@ -44,6 +59,8 @@ def _cmd_analyze(args) -> int:
 def _cmd_rules(args) -> int:
     from .rules import apply_rules
     library = pathlib.Path(args.library).resolve()
+    if (err := _require_library(library)) is not None:
+        return err
     conn = open_db(_db_path(library))
     try:
         report = apply_rules(conn)
@@ -57,6 +74,9 @@ def _cmd_rules(args) -> int:
 
 
 def _cmd_all(args) -> int:
+    library = pathlib.Path(args.library).resolve()
+    if (err := _require_library(library)) is not None:
+        return err
     for step in (_cmd_scan, _cmd_analyze, _cmd_rules):
         code = step(args)
         if code != 0:
@@ -67,6 +87,8 @@ def _cmd_all(args) -> int:
 def _cmd_serve(args) -> int:
     from .web.app import serve
     library = pathlib.Path(args.library).resolve()
+    if (err := _require_library(library)) is not None:
+        return err
     serve(library, host=args.host, port=args.port, open_browser=not args.no_open)
     return 0
 

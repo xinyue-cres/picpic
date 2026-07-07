@@ -40,3 +40,13 @@ def test_cli_unknown_command_returns_nonzero(capsys):
     with pytest.raises(SystemExit) as exc:
         main(["nope"])
     assert exc.value.code != 0
+
+
+def test_cli_scan_nonexistent_library_returns_2(tmp_path, capsys):
+    nonexistent = str(tmp_path / "no_such_dir")
+    code = main(["scan", nonexistent])
+    assert code == 2
+    err = capsys.readouterr().err
+    assert "not found or not a directory" in err
+    # Must not create any files on disk
+    assert not (tmp_path / "no_such_dir").exists()
