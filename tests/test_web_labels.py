@@ -160,6 +160,21 @@ async def test_photos_labeled_unclassified_includes_null(tmp_path: pathlib.Path)
     assert ids == {id_empty, id_below, id_null}
 
 
+@pytest.mark.anyio
+async def test_photos_labeled_empty_category(tmp_path: pathlib.Path) -> None:
+    from picpic.categories import write_default, yaml_available
+    if not yaml_available():
+        pytest.skip("PyYAML missing")
+    write_default(tmp_path)
+    conn = open_db(tmp_path / "picpic.db")
+    _seed(conn, str(tmp_path / "a.jpg"), [{"name": "食物", "score": 0.9}])
+    conn.close()
+    app = create_app(tmp_path)
+    r = await _get(app, "/api/photos?tab=labeled&label=收据&min_score=0.5")
+    assert r.status_code == 200
+    assert r.json() == {"photos": []}
+
+
 def test_labels_tab_button_in_html() -> None:
     from picpic.web.app import _STATIC_DIR
     html = (_STATIC_DIR / "index.html").read_text(encoding="utf-8")

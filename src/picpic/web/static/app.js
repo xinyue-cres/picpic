@@ -86,6 +86,10 @@ async function load() {
   state.photos = photos;
   state.selected.clear();
   render();
+  if (state.tab === 'labeled' && photos.length === 0) {
+    $('#grid').innerHTML =
+      '<p class="empty">该类别下暂无匹配</p>';
+  }
 }
 
 function render() {
