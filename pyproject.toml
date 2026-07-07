@@ -17,6 +17,12 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "httpx2>=2.5"]
+clip = [
+  "torch>=2.0",
+  "open_clip_torch>=2.24",
+  "pillow-heif>=0.15",
+  "PyYAML>=6.0",
+]
 
 [project.scripts]
 picpic = "picpic.cli:main"
@@ -26,3 +32,8 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 picpic = ["web/static/*"]
+
+[tool.pytest.ini_options]
+markers = [
+  "slow: requires downloading CLIP model weights (~350MB); run with -m slow",
+]
