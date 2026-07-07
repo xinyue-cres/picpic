@@ -10,6 +10,7 @@
     <nav id="tabs">
       <button class="tab active" data-tab="candidates">待删候选</button>
       <button class="tab" data-tab="similar">相似图组</button>
+      <button class="tab" data-tab="labeled">标签</button>
       <button class="tab" data-tab="trashed">回收区</button>
     </nav>
   </header>
@@ -25,6 +26,13 @@
       <input type="range" id="blur-threshold" min="0" max="500" value="100">
       <span id="blur-value">100</span>
       <button id="rerun-rules">重跑规则</button>
+    </div>
+    <div id="label-control" hidden>
+      类别:
+      <select id="label-select"></select>
+      最低分数:
+      <input type="range" id="min-score" min="0" max="1" step="0.05" value="0.25">
+      <span id="min-score-value">0.25</span>
     </div>
   </section>
 

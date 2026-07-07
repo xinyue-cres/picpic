@@ -44,3 +44,20 @@ main#grid {
   display: flex; align-items: center; justify-content: center; z-index: 10;
 }
 #lightbox img { max-width: 95vw; max-height: 95vh; }
+
+#label-control {
+  display: inline-flex;
+  gap: 0.5em;
+  align-items: center;
+  margin-left: 1em;
+}
+
+.badge.label {
+  background: #2c7be5;
+}
+
+.empty {
+  padding: 2em;
+  color: #666;
+  text-align: center;
+}

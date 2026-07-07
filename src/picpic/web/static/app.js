@@ -4,6 +4,8 @@ const state = {
   selected: new Set(),
   reasons: new Set(['screenshot', 'blurry', 'exact_dup']),
   blurThreshold: 100,
+  label: null,
+  minScore: 0.25,
 };
 
 const $ = (sel) => document.querySelector(sel);
@@ -18,10 +20,67 @@ async function api(path, opts = {}) {
   return res.json();
 }
 
+function toggleControls() {
+  const rf = document.querySelector('#reason-filters');
+  const bc = document.querySelector('#blur-control');
+  const lc = document.querySelector('#label-control');
+  if (rf) rf.hidden = state.tab !== 'candidates';
+  if (bc) bc.hidden = state.tab !== 'candidates';
+  if (lc) lc.hidden = state.tab !== 'labeled';
+}
+
+async function refreshLabelSelect() {
+  const info = await api(`/api/labels?min_score=${state.minScore}`);
+  const sel = $('#label-select');
+  const prev = sel.value;
+  sel.innerHTML = '';
+  if (!info.available) {
+    $('#grid').innerHTML =
+      '<p class="empty">运行 <code>picpic analyze --clip</code> 生成语义标签</p>';
+    return false;
+  }
+  const total = info.categories.reduce((s, c) => s + c.count, 0) + info.unclassified_count;
+  const all = document.createElement('option');
+  all.value = '';
+  all.textContent = `全部 (${total})`;
+  sel.appendChild(all);
+  for (const c of info.categories) {
+    if (c.count > 0) {
+      const o = document.createElement('option');
+      o.value = c.name;
+      o.textContent = `${c.name} (${c.count})`;
+      sel.appendChild(o);
+    }
+  }
+  if (info.unclassified_count > 0) {
+    const un = document.createElement('option');
+    un.value = '未分类';
+    un.textContent = `未分类 (${info.unclassified_count})`;
+    sel.appendChild(un);
+  }
+  sel.value = prev;
+  state.label = sel.value || null;
+  return true;
+}
+
 async function load() {
+  toggleControls();
+  if (state.tab === 'labeled') {
+    const ready = await refreshLabelSelect();
+    if (!ready) {
+      state.photos = [];
+      state.selected.clear();
+      render();
+      return;
+    }
+  }
   const params = new URLSearchParams({ tab: state.tab });
   if (state.tab === 'candidates' && state.blurThreshold !== 100) {
     params.set('min_blur', state.blurThreshold);
+  }
+  if (state.tab === 'labeled') {
+    params.set('min_score', state.minScore);
+    if (state.label) params.set('label', state.label);
   }
   const { photos } = await api(`/api/photos?${params}`);
   state.photos = photos;
@@ -71,10 +130,19 @@ function cardFor(p) {
   const el = document.createElement('div');
   el.className = 'card' + (state.selected.has(p.id) ? ' selected' : '');
   el.dataset.id = p.id;
-  el.innerHTML = `
-    <img loading="lazy" src="/thumb/${p.id}" alt="">
-    ${p.verdict_reason ? `<div class="badge">${p.verdict_reason}</div>` : ''}
-  `;
+  let badge = '';
+  if (state.tab === 'labeled' && p.top_label) {
+    badge = `<div class="badge label">${p.top_label.name} ${p.top_label.score.toFixed(2)}</div>`;
+    if (p.clip_labels && p.clip_labels.length > 1) {
+      el.title = p.clip_labels
+        .slice(1)
+        .map(l => `${l.name} ${l.score.toFixed(2)}`)
+        .join('\n');
+    }
+  } else if (p.verdict_reason) {
+    badge = `<div class="badge">${p.verdict_reason}</div>`;
+  }
+  el.innerHTML = `<img loading="lazy" src="/thumb/${p.id}" alt="">${badge}`;
   el.addEventListener('click', (ev) => {
     if (ev.shiftKey || ev.metaKey || ev.ctrlKey) {
       openLightbox(p.id);
@@ -149,6 +217,17 @@ $('#btn-select-all').addEventListener('click', () => {
 $('#btn-clear').addEventListener('click', () => {
   state.selected.clear();
   render();
+});
+
+$('#label-select').addEventListener('change', (e) => {
+  state.label = e.target.value || null;
+  load();
+});
+
+$('#min-score').addEventListener('input', (e) => {
+  state.minScore = Number(e.target.value);
+  $('#min-score-value').textContent = state.minScore.toFixed(2);
+  if (state.tab === 'labeled') load();
 });
 
 load();

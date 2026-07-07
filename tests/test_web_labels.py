@@ -158,3 +158,17 @@ async def test_photos_labeled_unclassified_includes_null(tmp_path: pathlib.Path)
     )
     ids = {p["id"] for p in r.json()["photos"]}
     assert ids == {id_empty, id_below, id_null}
+
+
+def test_labels_tab_button_in_html() -> None:
+    from picpic.web.app import _STATIC_DIR
+    html = (_STATIC_DIR / "index.html").read_text(encoding="utf-8")
+    assert 'data-tab="labeled"' in html
+    assert "标签" in html
+
+
+def test_labels_controls_in_html() -> None:
+    from picpic.web.app import _STATIC_DIR
+    html = (_STATIC_DIR / "index.html").read_text(encoding="utf-8")
+    assert 'id="label-select"' in html
+    assert 'id="min-score"' in html
