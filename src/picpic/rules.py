@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sqlite3
+import sys
 from collections import defaultdict
 from dataclasses import dataclass, field
 
@@ -13,12 +14,25 @@ class RulesReport:
     kept: int = 0
     candidates: int = 0
     by_reason: dict[str, int] = field(default_factory=dict)
+    unanalyzed: int = 0
 
 
 def apply_rules(
     conn: sqlite3.Connection,
     blur_threshold: float = DEFAULT_BLUR_THRESHOLD,
 ) -> RulesReport:
+    # Warn about unanalyzed photos
+    unanalyzed = conn.execute(
+        "SELECT COUNT(*) FROM photos WHERE status='active' "
+        "AND (is_screenshot IS NULL OR blur_score IS NULL OR file_hash IS NULL)"
+    ).fetchone()[0]
+    if unanalyzed:
+        print(
+            f"warning: {unanalyzed} photos not fully analyzed — "
+            "run 'picpic analyze' first for reliable verdicts",
+            file=sys.stderr,
+        )
+
     conn.execute(
         "UPDATE photos SET verdict=NULL, verdict_reason=NULL "
         "WHERE status='active'"
@@ -66,4 +80,9 @@ def apply_rules(
             counts[reason] += 1
 
     conn.commit()
-    return RulesReport(kept=kept, candidates=candidates, by_reason=dict(counts))
+    return RulesReport(
+        kept=kept,
+        candidates=candidates,
+        by_reason=dict(counts),
+        unanalyzed=unanalyzed,
+    )

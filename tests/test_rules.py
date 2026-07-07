@@ -124,3 +124,20 @@ def test_apply_rules_is_idempotent(tmp_path, tmp_db_path):
         conn.close()
 
     assert first.candidates == second.candidates == 1
+
+
+def test_apply_rules_warns_unanalyzed(tmp_path, tmp_db_path):
+    """Running rules on a scanned-but-not-analyzed DB reports unanalyzed > 0."""
+    lib = tmp_path / "lib"
+    _make(lib / "a.jpg")
+    _make(lib / "b.jpg", color=(200, 30, 30))
+
+    conn = open_db(tmp_db_path)
+    try:
+        scan_library(lib, conn)
+        # Do NOT run analyze_all — photos are unanalyzed
+        report = apply_rules(conn)
+    finally:
+        conn.close()
+
+    assert report.unanalyzed == 2

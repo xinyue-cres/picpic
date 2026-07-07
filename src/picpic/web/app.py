@@ -181,10 +181,17 @@ def create_app(library: pathlib.Path) -> FastAPI:
         if row is None:
             raise HTTPException(404, "no such photo")
         source = pathlib.Path(row["path"])
+        if row["status"] == "trashed":
+            from ..trash import TRASH_DIRNAME
+            trash = library / TRASH_DIRNAME
+            for entry in trash.iterdir() if trash.exists() else []:
+                if entry.name.startswith(f"{photo_id}__"):
+                    source = entry
+                    break
         if not _within_library(source, library):
             raise HTTPException(403, "path outside library")
         if not source.exists():
-            raise HTTPException(404, "no such photo")
+            raise HTTPException(404, "source missing")
         return FileResponse(str(source))
 
     return app

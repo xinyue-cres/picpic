@@ -68,7 +68,7 @@ def _cmd_rules(args) -> int:
         conn.close()
     print(
         f"rules: kept={report.kept} candidates={report.candidates} "
-        f"reasons={report.by_reason}"
+        f"unanalyzed={report.unanalyzed} reasons={report.by_reason}"
     )
     return 0
 

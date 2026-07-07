@@ -20,6 +20,9 @@ async function api(path, opts = {}) {
 
 async function load() {
   const params = new URLSearchParams({ tab: state.tab });
+  if (state.tab === 'candidates' && state.blurThreshold !== 100) {
+    params.set('min_blur', state.blurThreshold);
+  }
   const { photos } = await api(`/api/photos?${params}`);
   state.photos = photos;
   state.selected.clear();
@@ -110,6 +113,7 @@ $$('#reason-filters input').forEach(cb => cb.addEventListener('change', () => {
 $('#blur-threshold').addEventListener('input', (e) => {
   state.blurThreshold = Number(e.target.value);
   $('#blur-value').textContent = state.blurThreshold;
+  if (state.tab === 'candidates') load();
 });
 
 $('#rerun-rules').addEventListener('click', async () => {
