@@ -16,7 +16,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0"]
+dev = ["pytest>=8.0", "httpx2>=2.5"]
 
 [project.scripts]
 picpic = "picpic.cli:main"
