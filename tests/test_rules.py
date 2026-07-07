@@ -17,15 +17,6 @@ def _make_screenshot(path):
     _make(path, size=(1170, 2532), color=(30, 30, 30))
 
 
-def _make_blurry(path):
-    from PIL import ImageFilter
-    path.parent.mkdir(parents=True, exist_ok=True)
-    img = Image.new("RGB", (400, 400), (200, 30, 30)).filter(
-        ImageFilter.GaussianBlur(radius=12)
-    )
-    img.save(path, "JPEG", quality=95)
-
-
 def test_screenshot_becomes_candidate(tmp_path, tmp_db_path):
     lib = tmp_path / "lib"
     _make_screenshot(lib / "s.jpg")

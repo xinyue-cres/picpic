@@ -1,5 +1,3 @@
-import pathlib
-
 from PIL import Image
 
 from picpic.analyze.runner import analyze_all

@@ -1,6 +1,8 @@
 import sqlite3
 import pathlib
 
+import pytest
+
 from picpic.db import open_db, SCHEMA_VERSION
 
 
@@ -61,6 +63,3 @@ def test_verdict_check_constraint(tmp_db_path: pathlib.Path):
             )
     finally:
         conn.close()
-
-
-import pytest  # noqa: E402  (used by test above; kept at bottom to avoid moving)
