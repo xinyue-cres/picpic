@@ -4,7 +4,7 @@ import json
 import pathlib
 
 import pytest
-from httpx2 import ASGITransport, AsyncClient
+from httpx import ASGITransport, AsyncClient
 
 from picpic.db import open_db
 from picpic.web.app import create_app
