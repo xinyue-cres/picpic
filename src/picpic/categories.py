@@ -7,15 +7,9 @@ raise CategoriesError with a short, actionable message.
 
 from __future__ import annotations
 
+import importlib.util
 import pathlib
 from dataclasses import dataclass, field
-
-try:
-    import yaml  # type: ignore[import-not-found]
-    _YAML = True
-except ImportError:
-    yaml = None  # type: ignore[assignment]
-    _YAML = False
 
 
 CATEGORIES_FILENAME = "categories.yml"
@@ -66,7 +60,7 @@ categories:
 
 
 def yaml_available() -> bool:
-    return _YAML
+    return importlib.util.find_spec("yaml") is not None
 
 
 def _path(library: pathlib.Path) -> pathlib.Path:
@@ -74,7 +68,7 @@ def _path(library: pathlib.Path) -> pathlib.Path:
 
 
 def write_default(library: pathlib.Path) -> pathlib.Path:
-    if not _YAML:
+    if not yaml_available():
         raise CategoriesError(
             "PyYAML not installed. Install with: pip install '.[clip]'"
         )
@@ -87,7 +81,7 @@ def write_default(library: pathlib.Path) -> pathlib.Path:
 
 
 def load_categories(library: pathlib.Path) -> CategoriesConfig:
-    if not _YAML:
+    if not yaml_available():
         raise CategoriesError(
             "PyYAML not installed. Install with: pip install '.[clip]'"
         )
@@ -98,6 +92,7 @@ def load_categories(library: pathlib.Path) -> CategoriesConfig:
 
 
 def _parse(text: str) -> CategoriesConfig:
+    import yaml  # lazy — only reached after yaml_available() gate
     try:
         raw = yaml.safe_load(text)
     except yaml.YAMLError as exc:
