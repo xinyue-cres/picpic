@@ -187,3 +187,30 @@ def test_labels_controls_in_html() -> None:
     html = (_STATIC_DIR / "index.html").read_text(encoding="utf-8")
     assert 'id="label-select"' in html
     assert 'id="min-score"' in html
+
+
+@pytest.mark.anyio
+async def test_photo_dict_handles_malformed_clip_labels(
+    tmp_path: pathlib.Path,
+) -> None:
+    """A hand-written clip_labels row of non-dict items must not 500.
+
+    Seed a JSON array of strings, request the candidates tab, expect
+    200 and top_label absent (or None).
+    """
+    conn = open_db(tmp_path / "picpic.db")
+    conn.execute(
+        "INSERT INTO photos(path, status, verdict, verdict_reason, clip_labels) "
+        "VALUES(?, 'active', 'trash_candidate', 'blurry', ?)",
+        (str(tmp_path / "bad.jpg"), '["not_a_dict"]'),
+    )
+    conn.commit()
+    conn.close()
+    app = create_app(tmp_path)
+    r = await _get(app, "/api/photos?tab=candidates")
+    assert r.status_code == 200
+    photos = r.json()["photos"]
+    assert len(photos) == 1
+    # top_label must be present as a key and set to None gracefully.
+    assert "top_label" in photos[0]
+    assert photos[0]["top_label"] is None

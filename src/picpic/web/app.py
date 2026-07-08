@@ -31,9 +31,12 @@ def _photo_dict(row) -> dict[str, Any]:
         try:
             data = json.loads(raw)
             if isinstance(data, list):
-                parsed = data
+                # Only keep dict rows — malformed hand-edited JSON may
+                # contain strings or nulls, which we treat as "no label".
+                parsed = [x for x in data if isinstance(x, dict)]
         except (json.JSONDecodeError, TypeError):
             parsed = []
+    top_label = parsed[0] if parsed else None
     return {
         "id": row["id"],
         "path": row["path"],
@@ -45,7 +48,7 @@ def _photo_dict(row) -> dict[str, Any]:
         "width": row["width"],
         "height": row["height"],
         "clip_labels": parsed,
-        "top_label": parsed[0] if parsed else None,
+        "top_label": top_label,
     }
 
 
@@ -180,7 +183,12 @@ def create_app(library: pathlib.Path) -> FastAPI:
                 arr = json.loads(raw)
             except (json.JSONDecodeError, TypeError):
                 arr = []
-            if arr and isinstance(arr, list) and arr[0].get("score", 0) >= min_score:
+            if (
+                arr
+                and isinstance(arr, list)
+                and isinstance(arr[0], dict)
+                and arr[0].get("score", 0) >= min_score
+            ):
                 name = arr[0].get("name")
                 if name in counts:
                     counts[name] += 1
