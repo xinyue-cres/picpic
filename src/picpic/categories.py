@@ -125,6 +125,11 @@ def _parse(text: str) -> CategoriesConfig:
             raise CategoriesError(f"categories[{i}]: prompt must be a non-empty string")
         if name in seen:
             raise CategoriesError(f"duplicate category name: {name!r}")
+        if name == "未分类":
+            raise CategoriesError(
+                "'未分类' is a reserved category name "
+                "(used for photos with no confident label)"
+            )
         seen.add(name)
         cats.append(Category(name=name, prompt=prompt))
     if top_k > len(cats):

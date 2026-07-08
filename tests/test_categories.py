@@ -114,3 +114,13 @@ def test_check_lists_problems(tmp_path: pathlib.Path) -> None:
     _write(tmp_path, "version: 2\ncategories: []\n")
     problems = check_categories(tmp_path)
     assert problems  # non-empty
+
+
+def test_reserved_name_未分类_rejected(tmp_path: pathlib.Path) -> None:
+    _write(
+        tmp_path,
+        "version: 1\nmodel: x\npretrained: y\ntop_k: 1\ncategories:\n"
+        "  - {name: 未分类, prompt: p}\n",
+    )
+    with pytest.raises(CategoriesError, match="reserved"):
+        load_categories(tmp_path)
