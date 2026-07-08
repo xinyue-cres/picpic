@@ -3,6 +3,7 @@ from __future__ import annotations
 import pathlib
 import shutil
 import sqlite3
+import sys
 from datetime import datetime, timezone
 
 
@@ -99,7 +100,7 @@ def restore_photos(
             print(
                 f"warning: trash entry missing for photo {r['id']} "
                 f"({r['path']}), leaving status as trashed",
-                file=__import__('sys').stderr,
+                file=sys.stderr,
             )
             continue
         original.parent.mkdir(parents=True, exist_ok=True)
