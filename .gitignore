@@ -10,3 +10,4 @@ _picpic_trash/
 build/
 dist/
 .pytest_cache/
+.superpowers/
