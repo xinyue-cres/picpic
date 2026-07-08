@@ -15,6 +15,7 @@ import importlib.util
 import json
 import pathlib
 import sqlite3
+import sys
 from dataclasses import dataclass
 from typing import Any, Callable
 
@@ -93,7 +94,7 @@ def _encode_image_batch(
     do not touch torch or _CACHE.
     """
     import torch  # type: ignore[import-not-found]
-    from PIL import Image, UnidentifiedImageError  # type: ignore[import-not-found]
+    from PIL import Image  # type: ignore[import-not-found]
 
     model, preprocess, _tokenizer = model_bundle
     device = next(model.parameters()).device
@@ -104,7 +105,14 @@ def _encode_image_batch(
             img = Image.open(p).convert("RGB")
             tensors.append(preprocess(img))
             valid_idx.append(i)
-        except (OSError, UnidentifiedImageError, ValueError):
+        except Exception as exc:
+            # Any decode/read failure per file is non-fatal — the batch
+            # continues with a None row for this index. Log so users can
+            # see which file was skipped.
+            print(
+                f"CLIP decode failed for {p}: {exc}",
+                file=sys.stderr,
+            )
             continue
     out: list[list[float] | None] = [None] * len(paths)
     if not tensors:
@@ -168,10 +176,32 @@ def run_clip_pass(
     failed = 0
     done = 0
     try:
-        for start in range(0, total, batch_size):
+        start = 0
+        while start < total:
             chunk = rows[start : start + batch_size]
             paths = [r["path"] for r in chunk]
-            scored = _encode_image_batch(model_bundle, paths)
+            # OOM retry: halve batch_size (down to 1) and retry the same
+            # chunk. Keep the smaller batch_size for the rest of the run
+            # since a batch that OOMed once will likely OOM again.
+            while True:
+                try:
+                    scored = _encode_image_batch(model_bundle, paths)
+                    break
+                except RuntimeError as exc:
+                    msg = str(exc).lower()
+                    if "out of memory" not in msg and "cuda oom" not in msg:
+                        raise
+                    if batch_size <= 1:
+                        raise
+                    new_bs = max(1, batch_size // 2)
+                    print(
+                        f"CLIP OOM at batch={batch_size}, "
+                        f"retrying with batch={new_bs}",
+                        file=sys.stderr,
+                    )
+                    batch_size = new_bs
+                    chunk = rows[start : start + batch_size]
+                    paths = [r["path"] for r in chunk]
             for row, s in zip(chunk, scored):
                 if s is None:
                     conn.execute(
@@ -190,6 +220,7 @@ def run_clip_pass(
             done += len(chunk)
             if progress is not None:
                 progress(done, total)
+            start += len(chunk)
     finally:
         _CACHE.clear()
 

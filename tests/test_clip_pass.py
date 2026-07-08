@@ -200,3 +200,52 @@ def test_run_clip_pass_skips_trashed(
 
 def test_clip_available_flag() -> None:
     assert isinstance(clip_mod.clip_available(), bool)
+
+
+def test_run_clip_pass_halves_on_oom(
+    tmp_path: pathlib.Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """OOM on the first encode call halves batch_size and retries.
+
+    Seeds 5 photos with batch_size=4. First call raises "CUDA out of
+    memory"; subsequent calls succeed. Expect the retry loop to halve
+    the batch (4 -> 2), the run to complete with processed=5, and a
+    stderr log line mentioning "OOM" and "retrying".
+    """
+    conn = open_db(tmp_path / "picpic.db")
+    _seed_photos(conn, tmp_path, 5)
+
+    call_log: list[int] = []  # batch_size passed to each call
+    fake_score = [0.1, 0.6, 0.2, 0.1]
+
+    def fake_load_categories(_library):
+        return _fixed_cfg()
+
+    def fake_load_model(_model, _pretrained):
+        return ("FAKE_MODEL", "FAKE_PREPROC", "FAKE_TOKENIZER")
+
+    def fake_encode_text(_bundle, _prompts):
+        return "FAKE_TEXT_EMB"
+
+    def fake_encode_image_batch(_bundle, paths):
+        call_log.append(len(paths))
+        # Raise on the very first call regardless of batch size.
+        if len(call_log) == 1:
+            raise RuntimeError("CUDA out of memory")
+        return [list(fake_score) for _ in paths]
+
+    monkeypatch.setattr(clip_mod, "load_categories", fake_load_categories)
+    monkeypatch.setattr(clip_mod, "_load_model", fake_load_model)
+    monkeypatch.setattr(clip_mod, "_encode_text", fake_encode_text)
+    monkeypatch.setattr(clip_mod, "_encode_image_batch", fake_encode_image_batch)
+
+    report = clip_mod.run_clip_pass(conn, tmp_path, batch_size=4)
+    assert report.processed == 5
+    assert report.failed == 0
+    # First call used batch=4, next call after halving used batch=2.
+    assert call_log[0] == 4
+    assert call_log[1] == 2
+    err = capsys.readouterr().err
+    assert "OOM" in err and "retrying" in err
