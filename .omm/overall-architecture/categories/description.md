@@ -1,0 +1,1 @@
+YAML taxonomy loader for CLIP zero-shot classification. Parses categories.yml into a list of (name, prompts) pairs used to build text embeddings. Reserves "未分类" (spec-normative literal) as the unclassified pseudo-category name and rejects it in user config. PyYAML is imported lazily via importlib.util.find_spec so the package imports without the [clip] extra installed.

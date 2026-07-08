@@ -1,0 +1,13 @@
+created: 2026-07-08T05:57:49.907Z
+updated: 2026-07-08T05:57:50.614Z
+update_count: 2
+last_field: description
+git_commit: 277b1d4
+git_branch: main
+children:
+  - all-cmd
+  - analyze-cmd
+  - categories-cmd
+  - rules-cmd
+  - scan-cmd
+  - serve-cmd

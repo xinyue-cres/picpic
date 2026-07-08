@@ -1,0 +1,15 @@
+graph TD
+    picpic["picpic\nsrc/picpic/cli.py"]
+    scan-cmd["scan\ncli._cmd_scan"]
+    analyze-cmd["analyze\ncli._cmd_analyze"]
+    rules-cmd["rules\ncli._cmd_rules"]
+    all-cmd["all\ncli._cmd_all"]
+    serve-cmd["serve\ncli._cmd_serve"]
+    categories-cmd["categories\ncli._cmd_categories"]
+
+    picpic -->|"walk & upsert"| scan-cmd
+    picpic -->|"--no-clip / --clip-only / --force-clip"| analyze-cmd
+    picpic -->|"compute verdict"| rules-cmd
+    picpic -->|"scan + analyze + rules"| all-cmd
+    picpic -->|"--host --port --no-open"| serve-cmd
+    picpic -->|"--list / --check / --init (required)"| categories-cmd

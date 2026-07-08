@@ -1,0 +1,5 @@
+- Originals are read-only for the entire lifecycle. Only src/picpic/trash.py may move files; only purge_trash may physically delete.
+- SQLite is the single source of truth. UI never scans the filesystem for photo state.
+- All processing is local — no network calls, no telemetry (sole exception: first-run HuggingFace weight download for CLIP).
+- Path traversal defense: /photo/{id} and /thumb/{id} must validate served paths lie within library root.
+- Phase 2 does not modify rules.py or trash.py; CLIP results do not participate in verdict.

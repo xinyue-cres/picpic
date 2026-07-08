@@ -1,0 +1,14 @@
+created: 2026-07-08T05:57:16.907Z
+updated: 2026-07-08T05:57:19.893Z
+update_count: 2
+last_field: diagram
+kind: nested-class
+title: analyze
+children:
+  - blur
+  - clip
+  - exif
+  - hashes
+  - runner
+  - similar
+parentPath: []

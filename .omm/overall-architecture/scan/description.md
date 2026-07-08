@@ -1,0 +1,1 @@
+Filesystem walker. Discovers image files (jpg/jpeg/png/heic/heif) under the library root, upserts one row per path into the photos table with status='active'. Reports counts of new/existing rows. Never modifies files on disk.

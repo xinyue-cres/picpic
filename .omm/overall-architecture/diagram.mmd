@@ -1,0 +1,30 @@
+graph LR
+    cli["CLI\nsrc/picpic/cli.py"]
+    scan["Scan\nsrc/picpic/scan.py"]
+    analyze["Analyze\nsrc/picpic/analyze/"]
+    rules["Rules\nsrc/picpic/rules.py"]
+    trash["Trash\nsrc/picpic/trash.py"]
+    categories["Categories\nsrc/picpic/categories.py"]
+    web["Web UI\nsrc/picpic/web/"]
+    db["SQLite DB\nsrc/picpic/db.py"]
+    thumbs["Thumbs Cache\nsrc/picpic/thumbs.py"]
+
+    cli -->|"scan cmd"| scan
+    cli -->|"analyze cmd"| analyze
+    cli -->|"rules cmd"| rules
+    cli -->|"serve cmd"| web
+    cli -->|"categories cmd"| categories
+
+    scan -->|"upsert photos"| db
+    analyze -->|"read paths, write features"| db
+    analyze -->|"load taxonomy"| categories
+    rules -->|"read features, write verdict"| db
+    web -->|"read photos, move to trash"| db
+    web -->|"generate previews"| thumbs
+    web -->|"invoke"| trash
+    trash -->|"update status"| db
+
+    classDef entry fill:#89b4fa,stroke:#89b4fa,color:#1e1e2e
+    classDef store fill:#a6e3a1,stroke:#a6e3a1,color:#1e1e2e
+    class cli entry
+    class db,thumbs store

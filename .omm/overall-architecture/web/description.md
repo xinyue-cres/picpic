@@ -1,0 +1,1 @@
+FastAPI web UI. Serves four tabs (all/candidates/trash/labeled) plus REST endpoints for photo listing, thumbnail streaming, trash actions, and category label queries. Renders a vanilla-JS SPA (static/app.js) that never scans the filesystem — all photo state comes from SQLite. Runs on 127.0.0.1 only.

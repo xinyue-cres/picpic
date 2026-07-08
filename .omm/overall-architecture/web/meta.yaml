@@ -1,0 +1,10 @@
+created: 2026-07-08T05:57:21.853Z
+updated: 2026-07-08T05:57:23.157Z
+update_count: 2
+last_field: diagram
+kind: nested-class
+title: web
+children:
+  - app
+  - static
+parentPath: []

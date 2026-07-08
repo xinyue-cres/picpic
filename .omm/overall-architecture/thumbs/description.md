@@ -1,0 +1,1 @@
+On-demand thumbnail cache. Serves preview images for the web UI, keyed by photo id + size, stored under library/.picpic-thumbs/. Regenerated if source mtime is newer than the cached thumb. Never modifies originals.

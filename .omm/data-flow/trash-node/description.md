@@ -1,0 +1,1 @@
+Sole module allowed to mutate originals. move_to_trash → rename original into .picpic-trash/ and set status='trashed', trashed_at. restore → reverse. purge_trash → the one function permitted to physically delete bytes.

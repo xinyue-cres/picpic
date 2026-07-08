@@ -1,0 +1,28 @@
+graph LR
+    scan-stage["Scan\nsrc/picpic/scan.py"]
+    hashes-stage["Hashes\nsrc/picpic/analyze/hashes.py"]
+    exif-stage["EXIF\nsrc/picpic/analyze/exif.py"]
+    blur-stage["Blur\nsrc/picpic/analyze/blur.py"]
+    similar-stage["Similar\nsrc/picpic/analyze/similar.py"]
+    clip-stage["CLIP\nsrc/picpic/analyze/clip.py"]
+    rules-stage["Rules\nsrc/picpic/rules.py"]
+    db-store["photos table\nSQLite"]
+
+    scan-stage -->|"upsert path, status=active"| db-store
+    db-store -->|"active rows missing hashes"| hashes-stage
+    hashes-stage -->|"file_hash, phash"| db-store
+    db-store -->|"active rows"| exif-stage
+    exif-stage -->|"dims, camera, is_screenshot"| db-store
+    db-store -->|"active rows"| blur-stage
+    blur-stage -->|"blur_score"| db-store
+    db-store -->|"active rows with phash"| similar-stage
+    similar-stage -->|"dup_group"| db-store
+    db-store -->|"unlabeled active rows (optional)"| clip-stage
+    clip-stage -->|"clip_labels JSON"| db-store
+    db-store -->|"feature cols"| rules-stage
+    rules-stage -->|"verdict, verdict_reason"| db-store
+
+    classDef store fill:#a6e3a1,stroke:#a6e3a1,color:#1e1e2e
+    classDef concern fill:#f38ba8,stroke:#f38ba8,color:#1e1e2e
+    class db-store store
+    class clip-stage concern

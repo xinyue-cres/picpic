@@ -1,0 +1,36 @@
+graph LR
+    fs["Photo Library\n(filesystem, read-only)"]
+    cli-entry["CLI\nsrc/picpic/cli.py"]
+    scan-node["Scan\nsrc/picpic/scan.py"]
+    analyze-node["Analyze Passes\nsrc/picpic/analyze/"]
+    rules-node["Rules\nsrc/picpic/rules.py"]
+    sqlite["photos.db\nSQLite"]
+    web-node["Web UI\nsrc/picpic/web/app.py"]
+    trash-node["Trash\nsrc/picpic/trash.py"]
+    trash-fs["Trash Folder\n.picpic-trash/"]
+    huggingface["HuggingFace\nCLIP weights (first-run only)"]
+
+    fs -->|"read paths"| scan-node
+    cli-entry -->|"dispatch"| scan-node
+    cli-entry -->|"dispatch"| analyze-node
+    cli-entry -->|"dispatch"| rules-node
+    cli-entry -->|"dispatch"| web-node
+    scan-node -->|"upsert rows"| sqlite
+    sqlite -->|"read paths"| analyze-node
+    fs -->|"decode images"| analyze-node
+    huggingface -.->|"model weights"| analyze-node
+    analyze-node -->|"write features + clip_labels"| sqlite
+    sqlite -->|"read features"| rules-node
+    rules-node -->|"write verdict"| sqlite
+    sqlite -->|"read photos"| web-node
+    fs -->|"stream bytes"| web-node
+    web-node -->|"POST trash/{id}"| trash-node
+    trash-node -->|"move original"| trash-fs
+    trash-node -->|"status=trashed"| sqlite
+
+    classDef store fill:#a6e3a1,stroke:#a6e3a1,color:#1e1e2e
+    classDef external fill:#585b70,stroke:#585b70,color:#cdd6f4
+    classDef entry fill:#89b4fa,stroke:#89b4fa,color:#1e1e2e
+    class fs,sqlite,trash-fs store
+    class huggingface external
+    class cli-entry entry

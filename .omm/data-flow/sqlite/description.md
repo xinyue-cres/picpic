@@ -1,0 +1,1 @@
+photos.db under library root. Single source of truth for per-photo state: file identity (path, hashes), features (dims, EXIF, blur, dup_group, clip_labels), verdict, and lifecycle status (active/trashed). Written by scan, analyze, rules, and trash; read by web.

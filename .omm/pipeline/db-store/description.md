@@ -1,0 +1,1 @@
+SQLite photos table. Acts as the coordination substrate between stages: each stage reads rows needing its work and writes back into columns of the same table. No separate queue or in-memory pipeline object exists.

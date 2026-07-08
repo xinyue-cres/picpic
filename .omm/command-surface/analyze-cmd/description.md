@@ -1,0 +1,1 @@
+`picpic analyze <library> [--no-clip|--clip-only] [--force-clip]`. Runs feature-extraction passes over active photos. Default: all five passes. --no-clip skips CLIP. --clip-only skips Phase 1 passes. --force-clip re-labels photos even if clip_labels already set. Prints per-pass counts.

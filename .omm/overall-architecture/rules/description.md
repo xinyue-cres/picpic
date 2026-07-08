@@ -1,0 +1,1 @@
+Deterministic verdict engine. Reads feature columns (blur_score, dup_group, is_screenshot, etc.) and sets verdict='trash_candidate' with a verdict_reason string, or verdict='keep'. Does not touch clip_labels — Phase 2 CLIP results are informational only. Pure Python, no I/O beyond SQLite.

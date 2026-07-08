@@ -1,0 +1,1 @@
+`picpic scan <library>`. Walks library root, upserts image rows into photos table. Idempotent: existing paths get status='active' refresh, no re-hash. Reports new_count and existing_count. Never mutates originals.

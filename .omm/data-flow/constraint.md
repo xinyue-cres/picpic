@@ -1,0 +1,4 @@
+- Originals never leave the library filesystem read-only zone until Trash moves them. No other code path writes to originals.
+- SQLite is the single source of truth for photo state. The UI never scans the filesystem to answer queries.
+- CLIP weight download is the only outbound network call in the product.
+- Path traversal on /photo/{id} and /thumb/{id} is defended by validating that resolved paths lie within library root.

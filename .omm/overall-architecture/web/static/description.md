@@ -1,0 +1,1 @@
+Vanilla-JS SPA. Four tabs (all/candidates/trash/labeled). Renders photo grid with thumbnails, category badges built via createElement + textContent (XSS-safe), full top-k in title tooltip. Caches labelsMeta per tab, invalidates on tab change, min-score slider change (debounced via 'change' event), and trash/restore/purge actions.

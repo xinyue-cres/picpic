@@ -1,0 +1,8 @@
+graph LR
+    app["FastAPI App\nsrc/picpic/web/app.py"]
+    static["Frontend SPA\nsrc/picpic/web/static/"]
+
+    app -->|"serves index.html + app.js"| static
+    static -->|"fetch /api/photos, /api/labels"| app
+    static -->|"POST /api/trash, /restore, /purge"| app
+    app -->|"stream /photo/{id}, /thumb/{id}"| static

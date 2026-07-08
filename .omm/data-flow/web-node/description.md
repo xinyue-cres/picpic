@@ -1,0 +1,1 @@
+Reads photo rows from SQLite for the current tab, streams image bytes from filesystem for /photo/{id} and /thumb/{id}, forwards trash/restore/purge POSTs to the trash module. Loopback-only (127.0.0.1).

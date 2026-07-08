@@ -1,0 +1,1 @@
+External CDN hosting open_clip model weights (default ViT-B-32/laion2b_s34b_b79k). Contacted only on first CLIP run when the local torch cache is empty. Downloads are cached in ~/.cache/huggingface. This is the only outbound network call the product makes.

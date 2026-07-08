@@ -1,0 +1,1 @@
+Near-duplicate clusterer. Groups photos by phash Hamming distance under a threshold, writes a shared dup_group integer to each cluster's rows. Used by rules.py to mark all-but-one member as trash_candidate.

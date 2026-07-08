@@ -1,0 +1,16 @@
+created: 2026-07-08T05:56:45.214Z
+updated: 2026-07-08T05:56:53.955Z
+update_count: 3
+last_field: constraint
+git_commit: 277b1d4
+git_branch: main
+children:
+  - analyze
+  - categories
+  - cli
+  - db
+  - rules
+  - scan
+  - thumbs
+  - trash
+  - web

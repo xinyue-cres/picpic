@@ -1,0 +1,1 @@
+SQLite schema and connection factory. Defines a single photos table (path, hashes, EXIF, blur_score, dup_group, clip_labels, verdict, status, trashed_at) and a meta table for schema_version. SCHEMA_VERSION=1; Phase 2 reuses the existing clip_labels TEXT column and does not migrate. open_db enables foreign keys and creates tables on demand.

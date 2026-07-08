@@ -1,0 +1,1 @@
+The user's photo library directory. Read-only for the entire pipeline. Contains original image files (jpg/jpeg/png/heic/heif) in any nested layout. Scan walks it; Analyze decodes bytes from it; Web streams bytes from it.

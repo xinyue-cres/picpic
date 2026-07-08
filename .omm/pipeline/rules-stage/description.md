@@ -1,0 +1,1 @@
+Terminal stage. Reads blur_score, dup_group, is_screenshot, etc.; writes verdict='trash_candidate'|'keep' with a verdict_reason string. Purely SQL-driven. clip_labels is not consumed — Phase 2 kept CLIP results informational.

@@ -1,0 +1,13 @@
+graph LR
+    runner["Runner\nsrc/picpic/analyze/runner.py"]
+    hashes["Hashes\nsrc/picpic/analyze/hashes.py"]
+    exif["EXIF\nsrc/picpic/analyze/exif.py"]
+    blur["Blur\nsrc/picpic/analyze/blur.py"]
+    similar["Similar\nsrc/picpic/analyze/similar.py"]
+    clip["CLIP\nsrc/picpic/analyze/clip.py"]
+
+    runner -->|"run_hash_pass"| hashes
+    runner -->|"run_exif_pass"| exif
+    runner -->|"run_blur_pass"| blur
+    runner -->|"run_similarity_pass"| similar
+    runner -->|"run_clip_pass (optional)"| clip

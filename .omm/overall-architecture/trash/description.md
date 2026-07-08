@@ -1,0 +1,1 @@
+Sole owner of file mutations. move_to_trash relocates originals into a .picpic-trash/ folder under library root and sets photos.status='trashed', photos.trashed_at. restore reverses the move. purge_trash is the only function permitted to physically delete files. No other module in the codebase writes to originals.
