@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(sudo apt install -y python3.12-venv 2>&1)",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(git remote *)",
+      "Bash(git branch *)",
+      "Bash(git commit -m 'fix: lightbox遮挡修复、选中性能优化、footer悬浮、相似图组整组选中 *)",
+      "Bash(git push *)",
+      "Bash(git pull *)",
+      "Bash(git stash *)",
+      "Bash(git checkout *)",
+      "Bash(git rebase *)",
+      "Bash(GIT_EDITOR=true git rebase --continue)"
+    ]
+  }
+}
