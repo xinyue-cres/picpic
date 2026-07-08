@@ -95,3 +95,10 @@ def test_cli_analyze_clip_only_flag(tmp_path, monkeypatch):
     rc = cli_main(["analyze", str(tmp_path), "--clip-only"])
     assert rc == 0
     assert exif_calls["n"] == 0
+
+
+def test_analyze_rejects_no_clip_with_clip_only(tmp_path):
+    """argparse's mutually-exclusive group must reject both flags."""
+    with pytest.raises(SystemExit) as exc:
+        main(["analyze", str(tmp_path), "--no-clip", "--clip-only"])
+    assert exc.value.code == 2

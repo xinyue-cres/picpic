@@ -156,6 +156,9 @@ def _cmd_categories(args) -> int:
         for c in cfg.categories:
             print(f"  - {c.name}: {c.prompt}")
         return 0
+    # Unreachable when the argparse mutually-exclusive group has
+    # required=True, but defensive if wiring later changes.
+    return 2
 
 
 def _cmd_serve(args) -> int:
@@ -177,8 +180,9 @@ def main(argv: list[str] | None = None) -> int:
 
     p = sub.add_parser("analyze")
     p.add_argument("library")
-    p.add_argument("--no-clip", action="store_true", help="skip CLIP pass")
-    p.add_argument("--clip-only", action="store_true", help="run only CLIP")
+    grp = p.add_mutually_exclusive_group()
+    grp.add_argument("--no-clip", action="store_true", help="skip CLIP pass")
+    grp.add_argument("--clip-only", action="store_true", help="run only CLIP")
     p.add_argument("--force-clip", action="store_true",
                    help="rerun CLIP on all photos, not just unlabeled")
     p.set_defaults(fn=_cmd_analyze)
@@ -189,8 +193,9 @@ def main(argv: list[str] | None = None) -> int:
 
     p = sub.add_parser("all")
     p.add_argument("library")
-    p.add_argument("--no-clip", action="store_true")
-    p.add_argument("--clip-only", action="store_true")
+    grp = p.add_mutually_exclusive_group()
+    grp.add_argument("--no-clip", action="store_true")
+    grp.add_argument("--clip-only", action="store_true")
     p.add_argument("--force-clip", action="store_true")
     p.set_defaults(fn=_cmd_all)
 
